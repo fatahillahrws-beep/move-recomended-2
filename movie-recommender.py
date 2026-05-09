@@ -225,27 +225,25 @@ def prepare_vectors(movies_data):
 # ─────────────────────────────────────────────────────────────
 # TMDB POSTER
 # ─────────────────────────────────────────────────────────────
+TMDB_API_KEY = "f7abbd106ffe7a0b21d4f884ebae6318"
+
 @st.cache_data(show_spinner=False)
 def fetch_movie_poster(movie_title):
     try:
-        API_KEY = st.secrets.get("f7abbd106ffe7a0b21d4f884ebae6318", "")
-        if not API_KEY:
-            return None, None
         import urllib.parse
         q = urllib.parse.quote(movie_title)
-        url = f"https://api.themoviedb.org/3/search/movie?api_key={API_KEY}&query={q}"
+        url = f"https://api.themoviedb.org/3/search/movie?api_key={TMDB_API_KEY}&query={q}"
         resp = requests.get(url, timeout=10)
         if resp.status_code != 200:
-            return None, None
+            return None
         data = resp.json()
         if data.get('results'):
             r = data['results'][0]
-            poster = f"https://image.tmdb.org/t/p/w500{r['poster_path']}" if r.get('poster_path') else None
-            backdrop = f"https://image.tmdb.org/t/p/w1280{r['backdrop_path']}" if r.get('backdrop_path') else None
-            return poster, backdrop
-        return None, None
+            if r.get('poster_path'):
+                return f"https://image.tmdb.org/t/p/w500{r['poster_path']}"
+        return None
     except Exception:
-        return None, None
+        return None
 
 
 # ─────────────────────────────────────────────────────────────
@@ -637,7 +635,7 @@ elif page == "🎯  Recommend":
                         cols = st.columns(2, gap="medium")
                         for ci, (_, row) in enumerate(recs.iloc[pair_start:pair_start+2].iterrows()):
                             with cols[ci]:
-                                poster_url, _ = fetch_movie_poster(row['title'])
+                                poster_url = fetch_movie_poster(row['title'])
                                 badges = genre_badges(row['genres'])
                                 score_bar = score_bar_html(row['score'])
 
