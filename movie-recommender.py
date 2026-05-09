@@ -378,10 +378,7 @@ with st.sidebar:
     )
 
     st.markdown("""
-    <hr style="border-color:rgba(232,184,75,0.1);margin:1.5rem 0 1rem;">
-    <div style="font-size:0.7rem;color:#555566;text-align:center;line-height:1.6;">
-        Powered by Collaborative Filtering<br>& Content-Based AI
-    </div>
+    <hr style="border-color:rgba(232,184,75,0.1);margin:1.5rem 0 0;">
     """, unsafe_allow_html=True)
 
 
@@ -638,34 +635,61 @@ elif page == "🎯  Recommend":
                                 poster_url = fetch_movie_poster(row['title'])
                                 badges = genre_badges(row['genres'])
                                 score_bar = score_bar_html(row['score'])
+                                title_text = row['title']
+                                genres_list = row['genres']
 
-                                if poster_url:
-                                    poster_html = f'<img src="{poster_url}" style="width:100%;height:320px;object-fit:contain;background:#0d0d18;border-radius:10px 10px 0 0;display:block;">'
-                                else:
-                                    poster_html = """
-                                    <div style="width:100%;height:320px;background:#0d0d18;
-                                                border-radius:10px 10px 0 0;display:flex;flex-direction:column;
-                                                align-items:center;justify-content:center;gap:0.6rem;">
-                                        <div style="font-size:2.5rem;opacity:0.3;">🎬</div>
-                                        <div style="font-size:0.78rem;color:#555566;letter-spacing:0.06em;">No Image</div>
-                                    </div>
-                                    """
-
+                                # ── Card top border ──
                                 st.markdown(f"""
-                                <div style="background:var(--card);border:1px solid var(--border);
-                                            border-radius:12px;overflow:hidden;margin-bottom:1rem;
-                                            transition:all 0.3s;">
-                                    {poster_html}
-                                    <div style="padding:1.1rem 1.2rem 1.2rem;">
-                                        <div style="font-family:'Playfair Display',serif;font-size:1.05rem;
-                                                    font-weight:700;color:#e8e6e0;line-height:1.3;
-                                                    margin-bottom:0.6rem;">{row['title']}</div>
-                                        <div style="margin-bottom:0.8rem;">{badges}</div>
-                                        <div style="font-size:0.72rem;color:#888899;
-                                                    text-transform:uppercase;letter-spacing:0.08em;
-                                                    margin-bottom:0.3rem;">Match Score</div>
-                                        {score_bar}
+                                <div style="background:#16161f;border:1px solid rgba(232,184,75,0.15);
+                                            border-radius:12px;overflow:hidden;margin-bottom:1rem;">
+                                """, unsafe_allow_html=True)
+
+                                # ── Poster ──
+                                if poster_url:
+                                    st.markdown(
+                                        f'<img src="{poster_url}" style="width:100%;height:320px;'
+                                        f'object-fit:contain;background:#0d0d18;display:block;">',
+                                        unsafe_allow_html=True
+                                    )
+                                else:
+                                    st.markdown("""
+                                    <div style="width:100%;height:220px;background:#f5f5f5;
+                                                display:flex;flex-direction:column;
+                                                align-items:center;justify-content:center;gap:0.5rem;">
+                                        <div style="font-size:2.5rem;opacity:0.25;filter:grayscale(1);">🎬</div>
+                                        <div style="font-size:0.8rem;color:#999;font-weight:500;
+                                                    letter-spacing:0.05em;">No Image</div>
                                     </div>
+                                    """, unsafe_allow_html=True)
+
+                                # ── Info body ──
+                                st.markdown(f"""
+                                <div style="padding:1rem 1.1rem 0.8rem;">
+                                    <div style="font-family:'Playfair Display',serif;font-size:1rem;
+                                                font-weight:700;color:#e8e6e0;line-height:1.35;
+                                                margin-bottom:0.55rem;">{title_text}</div>
+                                    <div style="margin-bottom:0.75rem;">{badges}</div>
+                                    <div style="font-size:0.68rem;color:#888899;text-transform:uppercase;
+                                                letter-spacing:0.09em;margin-bottom:0.25rem;">Match Score</div>
+                                </div>
+                                """, unsafe_allow_html=True)
+
+                                # ── Score bar (rendered separately to avoid broken nesting) ──
+                                score_pct = min(row['score'] / 10 * 100, 100)
+                                stars = min(int(row['score'] / 2) + 1, 5)
+                                star_str = "★" * stars + "☆" * (5 - stars)
+                                st.markdown(f"""
+                                <div style="padding:0 1.1rem 1rem;">
+                                    <div style="display:flex;align-items:center;gap:10px;">
+                                        <div style="flex:1;background:#1a1a26;border-radius:99px;height:6px;overflow:hidden;">
+                                            <div style="width:{score_pct:.1f}%;height:100%;
+                                                        background:linear-gradient(90deg,#E8B84B,#f5cc6a);
+                                                        border-radius:99px;"></div>
+                                        </div>
+                                        <span style="color:#E8B84B;font-size:0.85rem;font-weight:600;white-space:nowrap;">{row['score']:.2f}</span>
+                                        <span style="color:#E8B84B;font-size:0.85rem;">{star_str}</span>
+                                    </div>
+                                </div>
                                 </div>
                                 """, unsafe_allow_html=True)
 
