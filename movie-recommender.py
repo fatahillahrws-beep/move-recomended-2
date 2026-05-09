@@ -640,38 +640,14 @@ elif page == "🎯  Recommend":
                                 score_bar = score_bar_html(row['score'])
 
                                 if poster_url:
-                                    poster_html = f'<img src="{poster_url}" style="width:100%;height:280px;object-fit:cover;border-radius:10px 10px 0 0;">'
+                                    poster_html = f'<img src="{poster_url}" style="width:100%;height:320px;object-fit:contain;background:#0d0d18;border-radius:10px 10px 0 0;display:block;">'
                                 else:
-                                    # Rich gradient fallback with movie title
-                                    title_short = row['title'][:40] + ('…' if len(row['title']) > 40 else '')
-                                    genre_color = {
-                                        'Action':'#e74c3c','Adventure':'#e67e22','Animation':'#3498db',
-                                        'Comedy':'#f1c40f','Crime':'#8e44ad','Documentary':'#1abc9c',
-                                        'Drama':'#2980b9','Fantasy':'#9b59b6','Horror':'#c0392b',
-                                        'Mystery':'#16a085','Romance':'#e91e63','Sci-Fi':'#00bcd4',
-                                        'Thriller':'#d35400','War':'#7f8c8d','Western':'#795548',
-                                    }
-                                    g0 = row['genres'][0] if row['genres'] else 'Drama'
-                                    gc = genre_color.get(g0, '#2a2a4a')
-                                    poster_html = f"""
-                                    <div style="width:100%;height:280px;
-                                                background:linear-gradient(160deg,{gc}33 0%,#0d0d18 60%,#111118 100%);
-                                                border-radius:10px 10px 0 0;position:relative;overflow:hidden;
-                                                display:flex;flex-direction:column;justify-content:flex-end;padding:1.2rem;">
-                                        <div style="position:absolute;top:0;left:0;right:0;bottom:0;
-                                                    background:radial-gradient(ellipse at top right,{gc}22,transparent 60%);"></div>
-                                        <div style="position:absolute;top:1rem;right:1rem;
-                                                    font-size:3.5rem;opacity:0.15;">🎬</div>
-                                        <div style="position:relative;">
-                                            <div style="background:{gc}22;border:1px solid {gc}44;
-                                                        color:{gc};font-size:0.68rem;font-weight:600;
-                                                        padding:2px 10px;border-radius:20px;
-                                                        display:inline-block;margin-bottom:0.5rem;
-                                                        text-transform:uppercase;letter-spacing:0.08em;">{g0}</div>
-                                            <div style="font-family:'Playfair Display',serif;
-                                                        font-size:1rem;font-weight:700;
-                                                        color:#e8e6e0;line-height:1.3;">{title_short}</div>
-                                        </div>
+                                    poster_html = """
+                                    <div style="width:100%;height:320px;background:#0d0d18;
+                                                border-radius:10px 10px 0 0;display:flex;flex-direction:column;
+                                                align-items:center;justify-content:center;gap:0.6rem;">
+                                        <div style="font-size:2.5rem;opacity:0.3;">🎬</div>
+                                        <div style="font-size:0.78rem;color:#555566;letter-spacing:0.06em;">No Image</div>
                                     </div>
                                     """
 
