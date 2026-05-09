@@ -403,11 +403,6 @@ if page == "🏠  Home":
                     background:radial-gradient(ellipse,rgba(192,57,43,0.05) 0%,transparent 70%);
                     pointer-events:none;"></div>
         <div style="position:relative;max-width:800px;">
-            <div style="display:inline-block;background:rgba(232,184,75,0.1);border:1px solid rgba(232,184,75,0.25);
-                        border-radius:20px;padding:3px 14px;font-size:0.72rem;color:#E8B84B;
-                        letter-spacing:0.1em;text-transform:uppercase;margin-bottom:1.2rem;">
-                ✦ AI-Powered Film Discovery
-            </div>
             <h1 style="font-family:'Playfair Display',serif;font-size:clamp(2.2rem,4vw,3.6rem);
                        font-weight:900;line-height:1.1;margin:0 0 1rem;
                        background:linear-gradient(135deg,#e8e6e0,#E8B84B 60%,#f5cc6a);
@@ -543,12 +538,15 @@ elif page == "📊  Analytics":
         st.pyplot(fig)
 
     with tab3:
-        genre_rating = []
-        for _, row in combined_data.iterrows():
-            for g in row['genres']:
-                genre_rating.append({'genre': g, 'rating': row['rating']})
-        gr_df = pd.DataFrame(genre_rating)
-        avg_by_genre = gr_df.groupby('genre')['rating'].mean().sort_values(ascending=True).tail(15)
+        # Fast explode instead of slow iterrows
+        gr_df = (
+            combined_data[['movieId', 'rating', 'genres']]
+            .copy()
+        )
+        gr_df['genres'] = gr_df['genres'].apply(lambda x: x if isinstance(x, list) else [x])
+        gr_df = gr_df.explode('genres')
+        gr_df = gr_df[gr_df['genres'].notna() & (gr_df['genres'] != '')]
+        avg_by_genre = gr_df.groupby('genres')['rating'].mean().sort_values(ascending=True).tail(15)
 
         fig, ax = plt.subplots(figsize=(9, 6), facecolor=DARK_PARAMS['facecolor'])
         ax.set_facecolor(DARK_PARAMS['facecolor'])
@@ -646,12 +644,36 @@ elif page == "🎯  Recommend":
                                 if poster_url:
                                     poster_html = f'<img src="{poster_url}" style="width:100%;height:280px;object-fit:cover;border-radius:10px 10px 0 0;">'
                                 else:
-                                    poster_html = """
-                                    <div style="width:100%;height:280px;background:linear-gradient(135deg,#1a1a26,#111118);
-                                                border-radius:10px 10px 0 0;display:flex;flex-direction:column;
-                                                align-items:center;justify-content:center;color:#333344;">
-                                        <div style="font-size:3rem;">🎬</div>
-                                        <div style="font-size:0.75rem;margin-top:0.5rem;">No Poster Available</div>
+                                    # Rich gradient fallback with movie title
+                                    title_short = row['title'][:40] + ('…' if len(row['title']) > 40 else '')
+                                    genre_color = {
+                                        'Action':'#e74c3c','Adventure':'#e67e22','Animation':'#3498db',
+                                        'Comedy':'#f1c40f','Crime':'#8e44ad','Documentary':'#1abc9c',
+                                        'Drama':'#2980b9','Fantasy':'#9b59b6','Horror':'#c0392b',
+                                        'Mystery':'#16a085','Romance':'#e91e63','Sci-Fi':'#00bcd4',
+                                        'Thriller':'#d35400','War':'#7f8c8d','Western':'#795548',
+                                    }
+                                    g0 = row['genres'][0] if row['genres'] else 'Drama'
+                                    gc = genre_color.get(g0, '#2a2a4a')
+                                    poster_html = f"""
+                                    <div style="width:100%;height:280px;
+                                                background:linear-gradient(160deg,{gc}33 0%,#0d0d18 60%,#111118 100%);
+                                                border-radius:10px 10px 0 0;position:relative;overflow:hidden;
+                                                display:flex;flex-direction:column;justify-content:flex-end;padding:1.2rem;">
+                                        <div style="position:absolute;top:0;left:0;right:0;bottom:0;
+                                                    background:radial-gradient(ellipse at top right,{gc}22,transparent 60%);"></div>
+                                        <div style="position:absolute;top:1rem;right:1rem;
+                                                    font-size:3.5rem;opacity:0.15;">🎬</div>
+                                        <div style="position:relative;">
+                                            <div style="background:{gc}22;border:1px solid {gc}44;
+                                                        color:{gc};font-size:0.68rem;font-weight:600;
+                                                        padding:2px 10px;border-radius:20px;
+                                                        display:inline-block;margin-bottom:0.5rem;
+                                                        text-transform:uppercase;letter-spacing:0.08em;">{g0}</div>
+                                            <div style="font-family:'Playfair Display',serif;
+                                                        font-size:1rem;font-weight:700;
+                                                        color:#e8e6e0;line-height:1.3;">{title_short}</div>
+                                        </div>
                                     </div>
                                     """
 
