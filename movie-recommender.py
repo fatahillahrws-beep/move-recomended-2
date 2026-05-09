@@ -228,7 +228,7 @@ def prepare_vectors(movies_data):
 @st.cache_data(show_spinner=False)
 def fetch_movie_poster(movie_title):
     try:
-        API_KEY = st.secrets.get("TMDB_API_KEY", "")
+        API_KEY = st.secrets.get("f7abbd106ffe7a0b21d4f884ebae6318", "")
         if not API_KEY:
             return None, None
         import urllib.parse
@@ -500,7 +500,7 @@ elif page == "📊  Analytics":
 
     DARK_PARAMS = dict(
         facecolor='#111118', text_color='#e8e6e0',
-        grid_color='rgba(255,255,255,0.05)', accent='#E8B84B'
+        grid_color=(1.0, 1.0, 1.0, 0.06), spine_color='#1e1e2e', accent='#E8B84B'
     )
 
     tab1, tab2, tab3 = st.tabs(["🎭 Genre Landscape", "⭐ Rating Distribution", "📈 Genre vs Rating"])
@@ -519,7 +519,7 @@ elif page == "📊  Analytics":
         ax.tick_params(colors=DARK_PARAMS['text_color'], labelsize=8.5)
         plt.xticks(rotation=40, ha='right')
         for spine in ax.spines.values():
-            spine.set_color(DARK_PARAMS['grid_color'])
+            spine.set_color(DARK_PARAMS['spine_color'])
         ax.yaxis.grid(True, color=DARK_PARAMS['grid_color'], linestyle='--', linewidth=0.5)
         ax.set_axisbelow(True)
         fig.tight_layout()
@@ -536,7 +536,7 @@ elif page == "📊  Analytics":
         ax.set_ylabel("Frequency", color=DARK_PARAMS['text_color'], fontsize=10)
         ax.tick_params(colors=DARK_PARAMS['text_color'], labelsize=9)
         for spine in ax.spines.values():
-            spine.set_color(DARK_PARAMS['grid_color'])
+            spine.set_color(DARK_PARAMS['spine_color'])
         ax.yaxis.grid(True, color=DARK_PARAMS['grid_color'], linestyle='--', linewidth=0.5)
         ax.set_axisbelow(True)
         fig.tight_layout()
@@ -559,7 +559,7 @@ elif page == "📊  Analytics":
         ax.set_xlabel("Average Rating", color=DARK_PARAMS['text_color'], fontsize=10)
         ax.tick_params(colors=DARK_PARAMS['text_color'], labelsize=9)
         for spine in ax.spines.values():
-            spine.set_color(DARK_PARAMS['grid_color'])
+            spine.set_color(DARK_PARAMS['spine_color'])
         ax.xaxis.grid(True, color=DARK_PARAMS['grid_color'], linestyle='--', linewidth=0.5)
         ax.set_axisbelow(True)
         fig.tight_layout()
