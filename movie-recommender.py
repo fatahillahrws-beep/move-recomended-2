@@ -57,7 +57,19 @@ html, body, [class*="css"] {
 .stApp { background-color: var(--bg); }
 
 /* ── Hide Streamlit Chrome ── */
-#MainMenu, footer, header { visibility: hidden; }
+#MainMenu, footer { visibility: hidden; }
+header { visibility: hidden; }
+/* Preserve sidebar toggle button inside header */
+[data-testid="stHeader"] button,
+[data-testid="collapsedControl"],
+button[kind="header"],
+.st-emotion-cache-dvne4q,
+button[title="Open sidebar"],
+button[aria-label="Open sidebar"],
+button[aria-label="Close sidebar"] {
+    visibility: visible !important;
+    pointer-events: auto !important;
+}
 .block-container { padding: 2rem 2.5rem 3rem; max-width: 1400px; }
 
 /* ── Sidebar ── */
