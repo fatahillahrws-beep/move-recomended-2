@@ -246,6 +246,31 @@ def fetch_movie_poster(movie_title):
         return None
 
 
+@st.cache_data(show_spinner=False)
+def fetch_movie_details(movie_title):
+    """Fetch synopsis, rating, and poster from TMDB by title."""
+    try:
+        import urllib.parse
+        q = urllib.parse.quote(movie_title)
+        url = f"https://api.themoviedb.org/3/search/movie?api_key={TMDB_API_KEY}&query={q}"
+        resp = requests.get(url, timeout=10)
+        if resp.status_code != 200:
+            return {}
+        data = resp.json()
+        if not data.get('results'):
+            return {}
+        r = data['results'][0]
+        return {
+            'overview': r.get('overview') or '-',
+            'vote_average': r.get('vote_average'),
+            'vote_count': r.get('vote_count'),
+            'release_date': r.get('release_date', ''),
+            'poster_url': f"https://image.tmdb.org/t/p/w500{r['poster_path']}" if r.get('poster_path') else None,
+        }
+    except Exception:
+        return {}
+
+
 # ─────────────────────────────────────────────────────────────
 # INIT DATA
 # ─────────────────────────────────────────────────────────────
@@ -256,6 +281,26 @@ vec_title, tfidf_title, vec_genres, tfidf_genres = prepare_vectors(movies_data)
 
 all_genres = sorted(movies_data['genres'].explode().unique())
 all_genres = [g for g in all_genres if g and g != '']
+
+# ── Session state for movie detail view ──
+if 'detail_movie' not in st.session_state:
+    st.session_state['detail_movie'] = None   # dict: {title, genres, avg_rating}
+if 'detail_from_page' not in st.session_state:
+    st.session_state['detail_from_page'] = None
+
+
+# ─────────────────────────────────────────────────────────────
+# HELPER: Render a clickable movie card that sets detail state
+# ─────────────────────────────────────────────────────────────
+def movie_detail_button(title, genres, avg_rating=None, button_key=""):
+    """Render a small 'View Details' button that stores movie info in session state."""
+    if st.button("🔍 View Details", key=f"det_{button_key}", use_container_width=True):
+        st.session_state['detail_movie'] = {
+            'title': title,
+            'genres': genres,
+            'avg_rating': avg_rating,
+        }
+        st.rerun()
 
 
 # ─────────────────────────────────────────────────────────────
@@ -377,9 +422,153 @@ with st.sidebar:
         label_visibility="collapsed"
     )
 
+    # Back button when in detail view
+    if st.session_state.get('detail_movie'):
+        st.markdown("<hr style='border-color:rgba(232,184,75,0.1);margin:1rem 0;'>", unsafe_allow_html=True)
+        if st.button("← Back", use_container_width=True):
+            st.session_state['detail_movie'] = None
+            st.rerun()
+
     st.markdown("""
     <hr style="border-color:rgba(232,184,75,0.1);margin:1.5rem 0 0;">
     """, unsafe_allow_html=True)
+
+
+# ─────────────────────────────────────────────────────────────
+# PAGE: MOVIE DETAIL
+# ─────────────────────────────────────────────────────────────
+if st.session_state.get('detail_movie'):
+    m = st.session_state['detail_movie']
+    title    = m['title']
+    genres   = m['genres'] if isinstance(m['genres'], list) else []
+    avg_r    = m.get('avg_rating')
+
+    with st.spinner("Loading film details…"):
+        details = fetch_movie_details(title)
+
+    poster_url   = details.get('poster_url') or fetch_movie_poster(title)
+    overview     = details.get('overview') or '-'
+    tmdb_score   = details.get('vote_average')
+    vote_count   = details.get('vote_count')
+    release_date = details.get('release_date', '')
+    release_year = release_date[:4] if release_date else ''
+
+    badges = genre_badges(genres)
+
+    # ── Detail layout: poster left / info right ──
+    col_poster, col_info = st.columns([1, 2], gap="large")
+
+    with col_poster:
+        if poster_url:
+            st.markdown(
+                f'<img src="{poster_url}" style="width:100%;border-radius:14px;'
+                f'box-shadow:0 8px 40px rgba(0,0,0,0.6);display:block;">',
+                unsafe_allow_html=True
+            )
+        else:
+            st.markdown("""
+            <div style="width:100%;height:380px;background:#16161f;border:1px solid rgba(232,184,75,0.15);
+                        border-radius:14px;display:flex;flex-direction:column;
+                        align-items:center;justify-content:center;gap:0.5rem;">
+                <div style="font-size:3rem;opacity:0.2;">🎬</div>
+                <div style="font-size:0.8rem;color:#888899;">No Poster Available</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+    with col_info:
+        # Title + year
+        st.markdown(f"""
+        <div style="margin-bottom:1.2rem;">
+            <h1 style="font-family:'Playfair Display',serif;font-size:2.2rem;
+                       font-weight:900;margin:0 0 0.3rem;line-height:1.15;">{title}</h1>
+            {'<div style="color:#888899;font-size:0.9rem;margin-bottom:0.8rem;">' + release_year + '</div>' if release_year else ''}
+            <div style="margin-bottom:1rem;">{badges}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Ratings row
+        st.markdown("""
+        <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;
+                    color:#888899;margin-bottom:0.6rem;">Ratings</div>
+        """, unsafe_allow_html=True)
+
+        r1, r2 = st.columns(2)
+        with r1:
+            if tmdb_score is not None:
+                stars = min(int(tmdb_score / 2) + (1 if tmdb_score % 2 >= 0.5 else 0), 5)
+                star_str = "★" * stars + "☆" * (5 - stars)
+                st.markdown(f"""
+                <div style="background:#16161f;border:1px solid rgba(232,184,75,0.15);
+                            border-radius:12px;padding:1rem 1.2rem;">
+                    <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;
+                                color:#888899;margin-bottom:0.3rem;">TMDB Score</div>
+                    <div style="color:#E8B84B;font-family:'Playfair Display',serif;
+                                font-size:2rem;font-weight:700;">{tmdb_score:.1f}<span style="font-size:1rem;color:#555566;">/10</span></div>
+                    <div style="color:#E8B84B;font-size:0.9rem;margin-top:0.2rem;">{star_str}</div>
+                    {f'<div style="color:#555566;font-size:0.72rem;margin-top:0.2rem;">{vote_count:,} votes</div>' if vote_count else ''}
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                st.markdown("""
+                <div style="background:#16161f;border:1px solid rgba(232,184,75,0.15);
+                            border-radius:12px;padding:1rem 1.2rem;">
+                    <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;
+                                color:#888899;margin-bottom:0.3rem;">TMDB Score</div>
+                    <div style="color:#555566;font-size:1.5rem;">—</div>
+                </div>
+                """, unsafe_allow_html=True)
+
+        with r2:
+            if avg_r is not None and pd.notna(avg_r):
+                stars2 = min(int(avg_r / 1) + (1 if avg_r % 1 >= 0.5 else 0), 5)
+                star_str2 = "★" * stars2 + "☆" * (5 - stars2)
+                st.markdown(f"""
+                <div style="background:#16161f;border:1px solid rgba(232,184,75,0.15);
+                            border-radius:12px;padding:1rem 1.2rem;">
+                    <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;
+                                color:#888899;margin-bottom:0.3rem;">User Rating (Dataset)</div>
+                    <div style="color:#E8B84B;font-family:'Playfair Display',serif;
+                                font-size:2rem;font-weight:700;">{avg_r:.2f}<span style="font-size:1rem;color:#555566;">/5</span></div>
+                    <div style="color:#E8B84B;font-size:0.9rem;margin-top:0.2rem;">{star_str2}</div>
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                st.markdown("""
+                <div style="background:#16161f;border:1px solid rgba(232,184,75,0.15);
+                            border-radius:12px;padding:1rem 1.2rem;">
+                    <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;
+                                color:#888899;margin-bottom:0.3rem;">User Rating (Dataset)</div>
+                    <div style="color:#555566;font-size:1.5rem;">—</div>
+                </div>
+                """, unsafe_allow_html=True)
+
+        # Synopsis
+        st.markdown("""
+        <div style="margin-top:1.4rem;">
+            <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;
+                        color:#888899;margin-bottom:0.6rem;">Synopsis</div>
+        """, unsafe_allow_html=True)
+
+        if overview and overview != '-':
+            st.markdown(f"""
+            <div style="background:#16161f;border:1px solid rgba(232,184,75,0.1);
+                        border-radius:12px;padding:1.1rem 1.3rem;
+                        color:#e8e6e0;font-size:0.93rem;line-height:1.75;">
+                {overview}
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown("""
+            <div style="background:#16161f;border:1px solid rgba(232,184,75,0.1);
+                        border-radius:12px;padding:1.1rem 1.3rem;
+                        color:#555566;font-size:1.1rem;text-align:center;">
+                —
+            </div>
+            """, unsafe_allow_html=True)
+
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    st.stop()  # Don't render any other page content
 
 
 # ─────────────────────────────────────────────────────────────
@@ -463,9 +652,11 @@ if page == "🏠  Home":
     cols = st.columns(6)
     for i, (_, row) in enumerate(top_movies.iterrows()):
         with cols[i]:
+            movie_genres = movies_data.loc[movies_data['title'] == row['title'], 'genres']
+            genres_val = movie_genres.iloc[0] if len(movie_genres) > 0 else []
             st.markdown(f"""
             <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;
-                        padding:1rem 0.8rem;text-align:center;">
+                        padding:1rem 0.8rem;text-align:center;margin-bottom:0.5rem;">
                 <div style="font-size:1.8rem;margin-bottom:0.5rem;">🎬</div>
                 <div style="font-family:'Playfair Display',serif;font-size:0.82rem;font-weight:700;
                             color:#e8e6e0;line-height:1.3;min-height:40px;">{row['title'][:30]}{'…' if len(row['title'])>30 else ''}</div>
@@ -475,6 +666,7 @@ if page == "🏠  Home":
                 <div style="color:#555566;font-size:0.72rem;">{int(row['count']):,} ratings</div>
             </div>
             """, unsafe_allow_html=True)
+            movie_detail_button(row['title'], genres_val, row['mean'], button_key=f"home_{i}")
 
 
 # ─────────────────────────────────────────────────────────────
@@ -693,6 +885,12 @@ elif page == "🎯  Recommend":
                                 </div>
                                 """, unsafe_allow_html=True)
 
+                                # ── View Details button ──
+                                movie_detail_button(
+                                    title_text, genres_list,
+                                    button_key=f"rec_{pair_start}_{ci}"
+                                )
+
 
 # ─────────────────────────────────────────────────────────────
 # PAGE: BROWSE GENRE
@@ -755,9 +953,10 @@ elif page == "🎭  Browse Genre":
                 with cols[i % 3]:
                     badges = genre_badges(row['genres'])
                     rating_txt = f"★ {row['avg_rating']:.2f}" if pd.notna(row.get('avg_rating')) else "—"
+                    avg_r_val = row.get('avg_rating') if pd.notna(row.get('avg_rating')) else None
                     st.markdown(f"""
                     <div style="background:var(--card);border:1px solid var(--border);
-                                border-radius:12px;padding:1.2rem;margin-bottom:1rem;">
+                                border-radius:12px;padding:1.2rem;margin-bottom:0.5rem;">
                         <div style="font-family:'Playfair Display',serif;font-size:0.98rem;
                                     font-weight:700;color:#e8e6e0;margin-bottom:0.6rem;
                                     line-height:1.3;">{row['title']}</div>
@@ -768,6 +967,7 @@ elif page == "🎭  Browse Genre":
                         </div>
                     </div>
                     """, unsafe_allow_html=True)
+                    movie_detail_button(row['title'], row['genres'], avg_r_val, button_key=f"browse_{i}")
 
     else:
         # Genre discovery grid
