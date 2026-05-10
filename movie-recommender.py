@@ -508,58 +508,31 @@ if st.session_state.get('detail_movie'):
         # Ratings row
         st.markdown("""
         <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;
-                    color:#888899;margin-bottom:0.6rem;">Ratings</div>
+                    color:#888899;margin-bottom:0.6rem;">Rating</div>
         """, unsafe_allow_html=True)
 
-        r1, r2 = st.columns(2)
-        with r1:
-            if tmdb_score is not None:
-                stars = min(int(tmdb_score / 2) + (1 if tmdb_score % 2 >= 0.5 else 0), 5)
-                star_str = "★" * stars + "☆" * (5 - stars)
-                st.markdown(f"""
-                <div style="background:#16161f;border:1px solid rgba(232,184,75,0.15);
-                            border-radius:12px;padding:1rem 1.2rem;">
-                    <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;
-                                color:#888899;margin-bottom:0.3rem;">TMDB Score</div>
-                    <div style="color:#E8B84B;font-family:'Playfair Display',serif;
-                                font-size:2rem;font-weight:700;">{tmdb_score:.1f}<span style="font-size:1rem;color:#555566;">/10</span></div>
-                    <div style="color:#E8B84B;font-size:0.9rem;margin-top:0.2rem;">{star_str}</div>
-                    {f'<div style="color:#555566;font-size:0.72rem;margin-top:0.2rem;">{vote_count:,} votes</div>' if vote_count else ''}
-                </div>
-                """, unsafe_allow_html=True)
-            else:
-                st.markdown("""
-                <div style="background:#16161f;border:1px solid rgba(232,184,75,0.15);
-                            border-radius:12px;padding:1rem 1.2rem;">
-                    <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;
-                                color:#888899;margin-bottom:0.3rem;">TMDB Score</div>
-                    <div style="color:#555566;font-size:1.5rem;">—</div>
-                </div>
-                """, unsafe_allow_html=True)
-
-        with r2:
-            if avg_r is not None and pd.notna(avg_r):
-                stars2 = min(int(avg_r / 1) + (1 if avg_r % 1 >= 0.5 else 0), 5)
-                star_str2 = "★" * stars2 + "☆" * (5 - stars2)
-                st.markdown(f"""
-                <div style="background:#16161f;border:1px solid rgba(232,184,75,0.15);
-                            border-radius:12px;padding:1rem 1.2rem;">
-                    <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;
-                                color:#888899;margin-bottom:0.3rem;">User Rating (Dataset)</div>
-                    <div style="color:#E8B84B;font-family:'Playfair Display',serif;
-                                font-size:2rem;font-weight:700;">{avg_r:.2f}<span style="font-size:1rem;color:#555566;">/5</span></div>
-                    <div style="color:#E8B84B;font-size:0.9rem;margin-top:0.2rem;">{star_str2}</div>
-                </div>
-                """, unsafe_allow_html=True)
-            else:
-                st.markdown("""
-                <div style="background:#16161f;border:1px solid rgba(232,184,75,0.15);
-                            border-radius:12px;padding:1rem 1.2rem;">
-                    <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;
-                                color:#888899;margin-bottom:0.3rem;">User Rating (Dataset)</div>
-                    <div style="color:#555566;font-size:1.5rem;">—</div>
-                </div>
-                """, unsafe_allow_html=True)
+        if avg_r is not None and pd.notna(avg_r):
+            stars2 = min(int(avg_r / 1) + (1 if avg_r % 1 >= 0.5 else 0), 5)
+            star_str2 = "★" * stars2 + "☆" * (5 - stars2)
+            st.markdown(f"""
+            <div style="background:#16161f;border:1px solid rgba(232,184,75,0.15);
+                        border-radius:12px;padding:1rem 1.2rem;display:inline-block;min-width:180px;">
+                <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;
+                            color:#888899;margin-bottom:0.3rem;">User Rating (Dataset)</div>
+                <div style="color:#E8B84B;font-family:'Playfair Display',serif;
+                            font-size:2rem;font-weight:700;">{avg_r:.2f}<span style="font-size:1rem;color:#555566;">/5</span></div>
+                <div style="color:#E8B84B;font-size:0.9rem;margin-top:0.2rem;">{star_str2}</div>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown("""
+            <div style="background:#16161f;border:1px solid rgba(232,184,75,0.15);
+                        border-radius:12px;padding:1rem 1.2rem;display:inline-block;min-width:180px;">
+                <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;
+                            color:#888899;margin-bottom:0.3rem;">User Rating (Dataset)</div>
+                <div style="color:#555566;font-size:1.5rem;">—</div>
+            </div>
+            """, unsafe_allow_html=True)
 
         # Synopsis
         st.markdown("""
