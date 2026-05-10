@@ -287,6 +287,12 @@ if 'detail_movie' not in st.session_state:
     st.session_state['detail_movie'] = None   # dict: {title, genres, avg_rating}
 if 'detail_from_page' not in st.session_state:
     st.session_state['detail_from_page'] = None
+if 'last_recs' not in st.session_state:
+    st.session_state['last_recs'] = []
+if 'last_recs_title' not in st.session_state:
+    st.session_state['last_recs_title'] = ''
+if 'last_recs_genres_filter' not in st.session_state:
+    st.session_state['last_recs_genres_filter'] = []
 
 
 # ─────────────────────────────────────────────────────────────
@@ -478,13 +484,14 @@ if st.session_state.get('detail_movie'):
     with col_info:
         # Title + year
         st.markdown(f"""
-        <div style="margin-bottom:1.2rem;">
+        <div style="margin-bottom:0.6rem;">
             <h1 style="font-family:'Playfair Display',serif;font-size:2.2rem;
                        font-weight:900;margin:0 0 0.3rem;line-height:1.15;">{title}</h1>
-            {'<div style="color:#888899;font-size:0.9rem;margin-bottom:0.8rem;">' + release_year + '</div>' if release_year else ''}
-            <div style="margin-bottom:1rem;">{badges}</div>
+            {'<div style="color:#888899;font-size:0.9rem;margin-bottom:0.5rem;">' + release_year + '</div>' if release_year else ''}
         </div>
         """, unsafe_allow_html=True)
+        # Genre badges rendered separately to avoid HTML escaping issues
+        st.markdown(f'<div style="margin-bottom:1rem;">{badges}</div>', unsafe_allow_html=True)
 
         # Ratings row
         st.markdown("""
@@ -802,7 +809,18 @@ elif page == "🎯  Recommend":
                 idx = title_options.index(selected_title)
                 with st.spinner("Curating your personal watchlist…"):
                     recs = recommendation_results(user_input, idx, selected_genres_filter)
+                # Store in session state so results survive View Details rerun
+                st.session_state['last_recs'] = recs.to_dict('records') if len(recs) > 0 else []
+                st.session_state['last_recs_title'] = selected_title
+                st.session_state['last_recs_genres_filter'] = selected_genres_filter
 
+            # Render recommendations from session state (survives rerun)
+            recs_data = st.session_state.get('last_recs', [])
+            recs_title = st.session_state.get('last_recs_title', '')
+            recs_filter = st.session_state.get('last_recs_genres_filter', [])
+
+            if recs_data:
+                recs = pd.DataFrame(recs_data)
                 if len(recs) == 0:
                     st.warning("No recommendations found. Try removing genre filters or a different film.")
                 else:
@@ -812,9 +830,9 @@ elif page == "🎯  Recommend":
                         <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;
                                     color:#E8B84B;margin-bottom:0.4rem;">Because you like</div>
                         <h2 style="font-family:'Playfair Display',serif;font-size:2rem;margin:0;">
-                            {selected_title}
+                            {recs_title}
                         </h2>
-                        {'<div style="margin-top:0.5rem;font-size:0.83rem;color:#888899;">Filtered by: ' + ', '.join(f'<span style="color:#E8B84B;">{g}</span>' for g in selected_genres_filter) + '</div>' if selected_genres_filter else ''}
+                        {'<div style="margin-top:0.5rem;font-size:0.83rem;color:#888899;">Filtered by: ' + ', '.join(f'<span style="color:#E8B84B;">{g}</span>' for g in recs_filter) + '</div>' if recs_filter else ''}
                     </div>
                     <hr style="border-color:rgba(232,184,75,0.12);margin-bottom:1.5rem;">
                     """, unsafe_allow_html=True)
@@ -826,14 +844,13 @@ elif page == "🎯  Recommend":
                             with cols[ci]:
                                 poster_url = fetch_movie_poster(row['title'])
                                 badges = genre_badges(row['genres'])
-                                score_bar = score_bar_html(row['score'])
                                 title_text = row['title']
                                 genres_list = row['genres']
 
                                 # ── Card top border ──
                                 st.markdown(f"""
                                 <div style="background:#16161f;border:1px solid rgba(232,184,75,0.15);
-                                            border-radius:12px;overflow:hidden;margin-bottom:1rem;">
+                                            border-radius:12px;overflow:hidden;margin-bottom:0.5rem;">
                                 """, unsafe_allow_html=True)
 
                                 # ── Poster ──
@@ -856,17 +873,19 @@ elif page == "🎯  Recommend":
 
                                 # ── Info body ──
                                 st.markdown(f"""
-                                <div style="padding:1rem 1.1rem 0.8rem;">
+                                <div style="padding:1rem 1.1rem 0.4rem;">
                                     <div style="font-family:'Playfair Display',serif;font-size:1rem;
                                                 font-weight:700;color:#e8e6e0;line-height:1.35;
                                                 margin-bottom:0.55rem;">{title_text}</div>
-                                    <div style="margin-bottom:0.75rem;">{badges}</div>
                                     <div style="font-size:0.68rem;color:#888899;text-transform:uppercase;
                                                 letter-spacing:0.09em;margin-bottom:0.25rem;">Match Score</div>
                                 </div>
                                 """, unsafe_allow_html=True)
 
-                                # ── Score bar (rendered separately to avoid broken nesting) ──
+                                # Badges rendered separately
+                                st.markdown(f'<div style="padding:0 1.1rem 0.4rem;">{badges}</div>', unsafe_allow_html=True)
+
+                                # ── Score bar ──
                                 score_pct = min(row['score'] / 10 * 100, 100)
                                 stars = min(int(row['score'] / 2) + 1, 5)
                                 star_str = "★" * stars + "☆" * (5 - stars)
